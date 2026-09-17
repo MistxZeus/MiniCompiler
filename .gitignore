@@ -1,0 +1,14 @@
+#Generated Flex/Bison filed
+src/lex.yy.c
+src/parser.tab.c
+src/parser.tab.h
+#Compiled executables
+src/compiler
+src/lexer
+#obect files
+*.o
+#IDE files
+.vscode/
+.idea/
+# Temporary files
+*.tmp
