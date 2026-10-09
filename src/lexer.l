@@ -6,11 +6,13 @@
 #include "parser.tab.h"
 
 using namespace std;
+extern bool lexicalError;
 %}
 
 %%
 
 "let"       { return LET; }
+"print"     { return PRINT; }
 
 "="         { return ASSIGN; }
 
@@ -20,6 +22,9 @@ using namespace std;
 "-"         { return MINUS; }
 "*"         { return MULTIPLY; }
 "/"         { return DIVIDE; }
+
+"("     { return '('; }
+")"     { return ')'; }
 
 [0-9]+      {
                 yylval.intValue = std::stoi(yytext);
@@ -34,7 +39,8 @@ using namespace std;
 [ \t\n]+    { }
 
 . {
-    cout << "Unknown character: " << yytext << endl;
+      lexicalError = true;
+    cerr << "Lexical Error: Unknown character '" << yytext << "'" << endl;
+    return 0;
 }
-
 %%

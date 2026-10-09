@@ -24,10 +24,17 @@ bool SemanticAnalyzer::analyze(
 void SemanticAnalyzer::analyzeStatement(
     const Statement* statement)
 {
+    // --------------------------
     // Variable declaration
+    // --------------------------
+
     if (const auto* declaration =
             dynamic_cast<const VariableDeclaration*>(statement))
     {
+        // Analyze initializer first.
+        analyzeExpression(declaration->value.get());
+
+        // Then introduce the variable into the symbol table.
         if (!symbolTable.declare(declaration->name))
         {
             cout << "Semantic Error: Variable '"
@@ -37,11 +44,12 @@ void SemanticAnalyzer::analyzeStatement(
 
             hasErrors = true;
         }
-
-        analyzeExpression(declaration->value.get());
     }
 
+    // --------------------------
     // Assignment
+    // --------------------------
+
     else if (const auto* assignment =
                  dynamic_cast<const Assignment*>(statement))
     {
@@ -56,6 +64,16 @@ void SemanticAnalyzer::analyzeStatement(
         }
 
         analyzeExpression(assignment->value.get());
+    }
+
+    // --------------------------
+    // Print
+    // --------------------------
+
+    else if (const auto* print =
+                 dynamic_cast<const PrintStatement*>(statement))
+    {
+        analyzeExpression(print->value.get());
     }
 }
 
@@ -85,7 +103,7 @@ void SemanticAnalyzer::analyzeExpression(
         analyzeExpression(binary->right.get());
     }
 
-    // NumberExpr requires no semantic validation
+    // NumberExpr requires no semantic validation.
 }
 
 void SemanticAnalyzer::printSymbolTable() const

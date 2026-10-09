@@ -66,56 +66,74 @@ void printExpression(
 
 void printStatement(
     const Statement* statement,
-    const string& prefix,
-    bool isLast
-)
+    const std::string& prefix,
+    bool isLast)
 {
-    cout << prefix;
+    if (const auto* declaration =
+            dynamic_cast<const VariableDeclaration*>(statement))
+    {
+        std::cout << prefix
+                  << (isLast ? "└── " : "├── ")
+                  << "VariableDeclaration: "
+                  << declaration->name
+                  << std::endl;
 
-    if (isLast)
-        cout << "└── ";
-    else
-        cout << "├── ";
+        std::string childPrefix = prefix;
 
-   if (const auto* declaration =
-        dynamic_cast<const VariableDeclaration*>(statement))
-{
-    cout << "VariableDeclaration: "
-         << declaration->name << endl;
+        if (isLast)
+            childPrefix += "    ";
+        else
+            childPrefix += "│   ";
 
-    string childPrefix = prefix;
+        printExpression(
+            declaration->value.get(),
+            childPrefix,
+            true
+        );
+    }
+    else if (const auto* assignment =
+                 dynamic_cast<const Assignment*>(statement))
+    {
+        std::cout << prefix
+                  << (isLast ? "└── " : "├── ")
+                  << "Assignment: "
+                  << assignment->name
+                  << std::endl;
 
-    if (isLast)
-        childPrefix += "    ";
-    else
-        childPrefix += "│   ";
+        std::string childPrefix = prefix;
 
-    printExpression(
-        declaration->value.get(),
-        childPrefix,
-        true
-    );
-}
-else if (const auto* assignment =
-             dynamic_cast<const Assignment*>(statement))
-{
-    cout << "Assignment: "
-         << assignment->name << endl;
+        if (isLast)
+            childPrefix += "    ";
+        else
+            childPrefix += "│   ";
 
-    string childPrefix = prefix;
+        printExpression(
+            assignment->value.get(),
+            childPrefix,
+            true
+        );
+    }
+    else if (const auto* print =
+                 dynamic_cast<const PrintStatement*>(statement))
+    {
+        std::cout << prefix
+                  << (isLast ? "└── " : "├── ")
+                  << "PrintStatement"
+                  << std::endl;
 
-    if (isLast)
-        childPrefix += "    ";
-    else
-        childPrefix += "│   ";
+        std::string childPrefix = prefix;
 
-    printExpression(
-        assignment->value.get(),
-        childPrefix,
-        true
-    );
-}
-    
+        if (isLast)
+            childPrefix += "    ";
+        else
+            childPrefix += "│   ";
+
+        printExpression(
+            print->value.get(),
+            childPrefix,
+            true
+        );
+    }
 }
 
 void printAST(const Program* program)

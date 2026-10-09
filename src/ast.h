@@ -97,6 +97,18 @@ public:
           value(std::move(value)) {}
 };
 
+// print expression;
+class PrintStatement : public Statement {
+public:
+    std::unique_ptr<Expression> value;
+
+    explicit PrintStatement(
+        std::unique_ptr<Expression> value
+    )
+        : value(std::move(value)) {}
+};
+
+
 // ==========================
 // Program
 // ==========================
