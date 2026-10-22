@@ -1,50 +1,37 @@
-# MiniLang Compiler
+# MiniCompiler — MiniLang
 
-A small compiler frontend developed for the Compiler Design Laboratory.
+MiniLang is a small C++ compiler/interpreter built with Flex and Bison. The pipeline performs lexical analysis, parsing, AST construction, semantic checks, three-address-code generation, and AST interpretation.
 
-The project demonstrates the major stages of a compiler frontend using
-Flex and Bison, with a custom Abstract Syntax Tree and semantic analysis.
+## Build
 
-## Current Implementation
+Install `g++`, `make`, `flex`, and `bison`, then run:
 
-The current prototype implements:
+```bash
+make clean
+make
+make test
+```
 
-- Lexical Analysis using Flex
-- Syntax Analysis using Bison
-- Abstract Syntax Tree (AST) construction
-- Arithmetic expressions
-- Variable declarations
-- Variable assignments
-- Multiple statements
-- Operator precedence
-- AST visualization
-- Symbol Table
-- Semantic Analysis
-- Undefined variable detection
-- Duplicate declaration detection
-- Invalid assignment detection
-
-## Compiler Architecture
+## Language examples
 
 ```text
-Source Code
-     |
-     v
-Lexical Analysis
-     |
-     v
-Tokens
-     |
-     v
-Syntax Analysis
-     |
-     v
-Abstract Syntax Tree
-     |
-     v
-Semantic Analysis
-     |
-     +----> Symbol Table
-     |
-     v
-Validated Program
+let x = 0;
+while (x < 5) {
+  x = x + 1;
+}
+if (x == 5 && !(x > 5)) {
+  print(x);
+} else {
+  print(0);
+}
+
+fn add(a, b) {
+  return a + b;
+}
+let result = add(10, 20);
+print(result);
+```
+
+Supported constructs include integer variables, assignment, `print`, arithmetic (`+ - * /`), unary minus, comparisons (`< > <= >= == !=`), Boolean operators (`&& || !`), nested blocks, `if/else`, `while`, and top-level functions with parameters and integer return values. Boolean values are represented as integers: zero is false and nonzero is true. Function declarations use `fn name(parameters) { ... }`.
+
+Function declarations are top-level only. Blocks create lexical scopes. This is a compact educational language, not a complete C implementation.
