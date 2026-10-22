@@ -12,6 +12,7 @@
 #include "semantic_analyzer.h"
 #include "ir.h"
 #include "interpreter.h"
+#include "optimizer.h"
 int yylex();
 void yyerror(const char *s);
 bool lexicalError = false;
@@ -47,7 +48,7 @@ static std::unique_ptr<BlockStatement> takeBlock(BlockStatement* b) { return std
 %nonassoc EQ NE LT GT LE GE
 %left PLUS MINUS
 %left MULTIPLY DIVIDE
-%right NOT UMINUS
+%precedence NOT UMINUS
 %type <statementList> top_item_list statement_list
 %type <statement> top_item statement
 %type <block> block
@@ -143,10 +144,19 @@ int main() {
     std::cout << "[4] Semantic Analysis     ";
     if (!analyzer.analyze(root.get())) { std::cout << "X\n"; analyzer.printSymbolTable(); std::cout << "COMPILATION FAILED\n"; return 1; }
     std::cout << "✓\n"; analyzer.printSymbolTable();
+
+    // Run optimization only after semantic analysis, so invalid source is
+    // diagnosed before constant branches or unreachable statements are removed.
+    Optimizer optimizer;
+    optimizer.optimize(root.get());
+    std::cout << "[5] Optimization          ✓\n";
+    optimizer.printSummary();
+    printAST(root.get());
+
     IRGenerator ir; ir.generate(root.get());
-    std::cout << "[5] Intermediate Code     ✓\n"; ir.printTAC();
+    std::cout << "[6] Intermediate Code     ✓\n"; ir.printTAC();
     Interpreter interpreter;
-    std::cout << "[6] Execution             ";
+    std::cout << "[7] Execution             ";
     if (!interpreter.execute(root.get())) { std::cout << "X\n========================================\n        EXECUTION FAILED\n========================================\n"; return 1; }
     std::cout << "✓\n"; interpreter.printEnvironment();
     std::cout << "========================================\n       COMPILATION SUCCESSFUL\n========================================\n";

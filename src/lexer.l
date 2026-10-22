@@ -1,4 +1,4 @@
-%option noyywrap
+%option noyywrap nounput
 %{
 #include <iostream>
 #include <cstdlib>
