@@ -1,50 +1,50 @@
-# MiniLang Compiler
+# MiniCompiler — MiniLang
 
-A small compiler frontend developed for the Compiler Design Laboratory.
+MiniLang is a small C++ compiler/interpreter built with Flex and Bison. The pipeline performs lexical analysis, parsing, AST construction, semantic checks, three-address-code generation, and AST interpretation.
 
-The project demonstrates the major stages of a compiler frontend using
-Flex and Bison, with a custom Abstract Syntax Tree and semantic analysis.
+## Build
 
-## Current Implementation
+Install `g++`, `make`, `flex`, and `bison`, then run:
 
-The current prototype implements:
+```bash
+make clean
+make
+make test
+```
 
-- Lexical Analysis using Flex
-- Syntax Analysis using Bison
-- Abstract Syntax Tree (AST) construction
-- Arithmetic expressions
-- Variable declarations
-- Variable assignments
-- Multiple statements
-- Operator precedence
-- AST visualization
-- Symbol Table
-- Semantic Analysis
-- Undefined variable detection
-- Duplicate declaration detection
-- Invalid assignment detection
-
-## Compiler Architecture
+## Language examples
 
 ```text
-Source Code
-     |
-     v
-Lexical Analysis
-     |
-     v
-Tokens
-     |
-     v
-Syntax Analysis
-     |
-     v
-Abstract Syntax Tree
-     |
-     v
-Semantic Analysis
-     |
-     +----> Symbol Table
-     |
-     v
-Validated Program
+let x = 0;
+while (x < 5) {
+  x = x + 1;
+}
+if (x == 5 && !(x > 5)) {
+  print(x);
+} else {
+  print(0);
+}
+
+fn add(a, b) {
+  return a + b;
+}
+let result = add(10, 20);
+print(result);
+```
+
+Supported constructs include integer variables, assignment, `print`, arithmetic (`+ - * /`), unary minus, comparisons (`< > <= >= == !=`), Boolean operators (`&& || !`), nested blocks, `if/else`, `while`, and top-level functions with parameters and integer return values. Boolean values are represented as integers: zero is false and nonzero is true. Function declarations use `fn name(parameters) { ... }`.
+
+Function declarations are top-level only. Blocks create lexical scopes. This is a compact educational language, not a complete C implementation.
+
+## Phase 3: Optimization
+
+The compiler now runs an AST optimization pass after semantic analysis and before TAC generation. It includes:
+
+- **Constant folding** for integer arithmetic, comparisons, and Boolean expressions.
+- **Safe algebraic identities**, such as `x + 0`, `x - 0`, `x * 1`, and `x / 1`.
+- **Constant branch simplification**, selecting a known `if` branch and removing `while (0)` bodies.
+- **Unreachable statement elimination** after a guaranteed return, including functions whose `if/else` branches both return.
+
+Division by zero is deliberately not folded, so the existing runtime diagnostic is preserved. Arithmetic folds that would overflow an `int` are also left unchanged. Semantic analysis runs before optimization, so invalid source in a constant-dead branch is still diagnosed.
+
+Run `make clean && make && make test` to rebuild and exercise the optimizer regression test in `tests/optimization.min`.

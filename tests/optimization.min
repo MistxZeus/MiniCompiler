@@ -1,0 +1,18 @@
+print(2 + 3 * 4);
+
+if (0) {
+    print(999);
+} else {
+    print(10 + 5);
+}
+
+while (0) {
+    print(888);
+}
+
+fn seven() {
+    return 7;
+    print(999);
+}
+
+print(seven());
