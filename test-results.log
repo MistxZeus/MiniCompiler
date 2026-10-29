@@ -1,0 +1,962 @@
+bison -Wall -d -o src/parser.tab.c src/parser.y
+flex -o src/lex.yy.c src/lexer.l
+g++ -std=c++17 -Wall -Wextra -pedantic src/parser.tab.c src/lex.yy.c src/ast.cpp src/semantic.cpp src/semantic_analyzer.cpp src/ir.cpp src/interpreter.cpp src/optimizer.cpp -o src/compiler
+===== tests/valid_program.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: y
+    Number: 20
+  Declare: z
+    Binary: +
+      Variable: x
+      Binary: *
+        Variable: y
+        Number: 2
+  Assign: x
+    Binary: +
+      Variable: z
+      Number: 5
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+y              int
+z              int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: y
+    Number: 20
+  Declare: z
+    Binary: +
+      Variable: x
+      Binary: *
+        Variable: y
+        Number: 2
+  Assign: x
+    Binary: +
+      Variable: z
+      Number: 5
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+x = 10
+y = 20
+t1 = y * 2
+t2 = x + t1
+z = t2
+t3 = z + 5
+x = t3
+
+[7] Execution             ✓
+
+=== RUNTIME ENVIRONMENT ===
+
+x = 55
+y = 20
+z = 50
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/print_program.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: y
+    Number: 20
+  Declare: z
+    Binary: *
+      Binary: +
+        Variable: x
+        Variable: y
+      Number: 2
+  Print
+    Variable: z
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+y              int
+z              int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: y
+    Number: 20
+  Declare: z
+    Binary: *
+      Binary: +
+        Variable: x
+        Variable: y
+      Number: 2
+  Print
+    Variable: z
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+x = 10
+y = 20
+t1 = x + y
+t2 = t1 * 2
+z = t2
+PRINT z
+
+[7] Execution             Program Output: 60
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+x = 10
+y = 20
+z = 60
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/tac_basic.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: y
+    Number: 20
+  Declare: z
+    Binary: +
+      Variable: x
+      Binary: *
+        Variable: y
+        Number: 2
+  Assign: x
+    Binary: +
+      Variable: z
+      Number: 5
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+y              int
+z              int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: y
+    Number: 20
+  Declare: z
+    Binary: +
+      Variable: x
+      Binary: *
+        Variable: y
+        Number: 2
+  Assign: x
+    Binary: +
+      Variable: z
+      Number: 5
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+x = 10
+y = 20
+t1 = y * 2
+t2 = x + t1
+z = t2
+t3 = z + 5
+x = t3
+
+[7] Execution             ✓
+
+=== RUNTIME ENVIRONMENT ===
+
+x = 55
+y = 20
+z = 50
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/undefined_variable.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Print
+    Variable: missing
+
+[4] Semantic Analysis     Semantic Error: Variable 'missing' is not declared.
+X
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+No global variables declared.
+
+COMPILATION FAILED
+
+===== tests/duplicate_declaration.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 10
+  Declare: x
+    Number: 20
+
+[4] Semantic Analysis     Semantic Error: Variable 'x' is already declared in this scope.
+X
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+
+COMPILATION FAILED
+
+===== tests/invalid_assignment.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Assign: x
+    Number: 10
+
+[4] Semantic Analysis     Semantic Error: Variable 'x' is not declared.
+X
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+No global variables declared.
+
+COMPILATION FAILED
+
+===== tests/syntax_error.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+Syntax Error: syntax error
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       X
+========================================
+        COMPILATION FAILED
+========================================
+
+===== tests/lexical_error.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+Lexical Error: Unknown character '@'
+
+[1] Lexical Analysis      X
+========================================
+        COMPILATION FAILED
+========================================
+
+===== tests/division_by_zero.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Binary: /
+      Number: 10
+      Number: 0
+  Print
+    Variable: x
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Binary: /
+      Number: 10
+      Number: 0
+  Print
+    Variable: x
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+t1 = 10 / 0
+x = t1
+PRINT x
+
+[7] Execution             Runtime Error: Division by zero.
+X
+========================================
+        EXECUTION FAILED
+========================================
+
+===== tests/control_flow.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 0
+  While
+    Binary: <
+      Variable: x
+      Number: 5
+    Block
+      Assign: x
+        Binary: +
+          Variable: x
+          Number: 1
+  If
+    Binary: &&
+      Binary: ==
+        Variable: x
+        Number: 5
+      Unary: !
+        Binary: >
+          Variable: x
+          Number: 5
+    Block
+      Print
+        Variable: x
+    Block
+      Print
+        Number: 0
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 0
+  While
+    Binary: <
+      Variable: x
+      Number: 5
+    Block
+      Assign: x
+        Binary: +
+          Variable: x
+          Number: 1
+  If
+    Binary: &&
+      Binary: ==
+        Variable: x
+        Number: 5
+      Unary: !
+        Binary: >
+          Variable: x
+          Number: 5
+    Block
+      Print
+        Variable: x
+    Block
+      Print
+        Number: 0
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+x = 0
+LABEL L1
+t1 = x < 5
+IF_FALSE t1 GOTO L2
+t2 = x + 1
+x = t2
+GOTO L1
+LABEL L2
+t4 = x == 5
+t3 = 0
+IF_FALSE t4 GOTO L3
+t5 = x > 5
+t6 = !t5
+IF_FALSE t6 GOTO L3
+t3 = 1
+GOTO L4
+LABEL L3
+LABEL L4
+IF_FALSE t3 GOTO L5
+PRINT x
+GOTO L6
+LABEL L5
+PRINT 0
+LABEL L6
+
+[7] Execution             Program Output: 5
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+x = 5
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/functions.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Function: add(a, b)
+    Block
+      Return
+        Binary: +
+          Variable: a
+          Variable: b
+  Declare: result
+    Call: add
+      Number: 10
+      Number: 20
+  Print
+    Variable: result
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+result         int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Function: add(a, b)
+    Block
+      Return
+        Binary: +
+          Variable: a
+          Variable: b
+  Declare: result
+    Call: add
+      Number: 10
+      Number: 20
+  Print
+    Variable: result
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+FUNC add
+PARAM_DECL a
+PARAM_DECL b
+t1 = a + b
+RETURN t1
+END_FUNC add
+PARAM 10
+PARAM 20
+t2 = CALL add, 2
+result = t2
+PRINT result
+
+[7] Execution             Program Output: 30
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+result = 30
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/recursive_function.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Function: fact(n)
+    Block
+      If
+        Binary: <=
+          Variable: n
+          Number: 1
+        Block
+          Return
+            Number: 1
+      Return
+        Binary: *
+          Variable: n
+          Call: fact
+            Binary: -
+              Variable: n
+              Number: 1
+  Declare: answer
+    Call: fact
+      Number: 5
+  Print
+    Variable: answer
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+answer         int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 0
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Function: fact(n)
+    Block
+      If
+        Binary: <=
+          Variable: n
+          Number: 1
+        Block
+          Return
+            Number: 1
+      Return
+        Binary: *
+          Variable: n
+          Call: fact
+            Binary: -
+              Variable: n
+              Number: 1
+  Declare: answer
+    Call: fact
+      Number: 5
+  Print
+    Variable: answer
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+FUNC fact
+PARAM_DECL n
+t1 = n <= 1
+IF_FALSE t1 GOTO L1
+RETURN 1
+LABEL L1
+t2 = n - 1
+PARAM t2
+t3 = CALL fact, 1
+t4 = n * t3
+RETURN t4
+END_FUNC fact
+PARAM 5
+t5 = CALL fact, 1
+answer = t5
+PRINT answer
+
+[7] Execution             Program Output: 120
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+answer = 120
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/short_circuit.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  If
+    Binary: &&
+      Number: 0
+      Binary: /
+        Number: 1
+        Number: 0
+    Block
+      Print
+        Number: 99
+    Block
+      Print
+        Number: 7
+  If
+    Binary: ||
+      Number: 1
+      Binary: /
+        Number: 1
+        Number: 0
+    Block
+      Print
+        Number: 8
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+No global variables declared.
+
+[5] Optimization          ✓
+Constant expressions folded: 2
+Dead statements removed: 0
+Constant branches simplified: 2
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Block
+    Print
+      Number: 7
+  Block
+    Print
+      Number: 8
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+PRINT 7
+PRINT 8
+
+[7] Execution             Program Output: 7
+Program Output: 8
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+No variables were created.
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/scopes.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 1
+  If
+    Number: 1
+    Block
+      Declare: x
+        Number: 2
+      Print
+        Variable: x
+  Print
+    Variable: x
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+x              int
+
+[5] Optimization          ✓
+Constant expressions folded: 0
+Dead statements removed: 0
+Constant branches simplified: 1
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Declare: x
+    Number: 1
+  Block
+    Declare: x
+      Number: 2
+    Print
+      Variable: x
+  Print
+    Variable: x
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+x = 1
+x = 2
+PRINT x
+PRINT x
+
+[7] Execution             Program Output: 2
+Program Output: 1
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+x = 1
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+
+===== tests/optimization.min =====
+========================================
+          MINILANG COMPILER
+========================================
+
+[1] Lexical Analysis      ✓
+[2] Syntax Analysis       ✓
+[3] AST Construction      ✓
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Print
+    Binary: +
+      Number: 2
+      Binary: *
+        Number: 3
+        Number: 4
+  If
+    Number: 0
+    Block
+      Print
+        Number: 999
+    Block
+      Print
+        Binary: +
+          Number: 10
+          Number: 5
+  While
+    Number: 0
+    Block
+      Print
+        Number: 888
+  Function: seven()
+    Block
+      Return
+        Number: 7
+      Print
+        Number: 999
+  Print
+    Call: seven
+
+[4] Semantic Analysis     ✓
+
+=== SYMBOL TABLE (GLOBAL SCOPE) ===
+
+Variable       Type
+---------------------
+No global variables declared.
+
+[5] Optimization          ✓
+Constant expressions folded: 3
+Dead statements removed: 2
+Constant branches simplified: 2
+
+=== ABSTRACT SYNTAX TREE ===
+
+Program
+  Print
+    Number: 14
+  Block
+    Print
+      Number: 15
+  Block
+  Function: seven()
+    Block
+      Return
+        Number: 7
+  Print
+    Call: seven
+
+[6] Intermediate Code     ✓
+
+=== THREE-ADDRESS CODE ===
+
+PRINT 14
+PRINT 15
+FUNC seven
+RETURN 7
+END_FUNC seven
+t1 = CALL seven, 0
+PRINT t1
+
+[7] Execution             Program Output: 14
+Program Output: 15
+Program Output: 7
+✓
+
+=== RUNTIME ENVIRONMENT ===
+
+No variables were created.
+
+========================================
+       COMPILATION SUCCESSFUL
+========================================
+

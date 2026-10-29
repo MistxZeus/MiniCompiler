@@ -15,4 +15,7 @@ src/lexer
 # Temporary files and operating-system metadata.
 *.tmp
 .DS_Store
-test-results.log
+
+# Generated native-code artifacts.
+*.s
+minilang_program

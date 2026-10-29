@@ -16,6 +16,7 @@ MiniCompiler is a small compiler and interpreter for **MiniLang**, a C-like teac
 - **Intermediate representation:** emits three-address code, including temporaries, labels, conditional/unconditional jumps, parameters, calls, and returns.
 - **Optimization:** constant folding, constant-branch simplification, and dead-statement removal for supported cases.
 - **Interpreter:** executes the optimized AST and reports runtime errors such as division by zero.
+- **Target code generation:** emits GNU x86-64 assembly from the optimized AST, including stack frames, arithmetic/comparison instructions, conditional jumps, function calls, and integer printing.
 
 ## Compiler pipeline
 
@@ -30,13 +31,14 @@ Flex lexer -> Bison parser -> Abstract Syntax Tree
                                   |
                                   v
                             AST optimization
-                             /           \
-                            v             v
-                  Three-address code   AST interpreter
-                       (TAC)           / runtime state
+                         /       |        \
+                        v        v         v
+                 Three-address  x86-64   AST interpreter
+                  code (TAC)   assembly   / runtime state
+                   (display)   (native)
 ```
 
-The implementation performs semantic analysis before optimization so that invalid source programs are rejected before the optimizer runs. The optimizer transforms the AST. The IR generator emits TAC for inspection, while the interpreter separately executes the optimized AST directly; TAC is not currently fed into the interpreter.
+The implementation performs semantic analysis before optimization so that invalid source programs are rejected before the optimizer runs. The optimizer transforms the AST. The IR generator emits TAC for inspection, while the target backend separately emits GNU x86-64 assembly from the optimized AST. The interpreter also executes the optimized AST directly; neither TAC nor the generated assembly is used by the interpreter. The native backend targets 64-bit Linux using the System V AMD64 calling convention and GCC/GNU assembler syntax.
 
 ## Requirements
 
@@ -92,6 +94,34 @@ Program Output: 30
 ```
 
 The compiler also prints its pipeline stages, AST, symbol table, optimization summary, TAC, and execution status.
+
+### Target code generation and native execution
+
+Target code generation runs as part of every successful normal compiler invocation. The generated GNU x86-64 assembly is displayed in the terminal in a `TARGET CODE` section immediately after the TAC output; the AST interpreter then runs as before. No assembly file is created by default:
+
+```bash
+./src/compiler < tests/recursive_function.min
+```
+
+To also save the displayed assembly into a file for assembling into a native executable, use `--emit-asm`:
+
+```bash
+./src/compiler --emit-asm program.s < tests/recursive_function.min
+gcc program.s -o minilang_program
+./minilang_program
+```
+
+The `--emit-asm` option does not skip any compiler stages or the AST interpreter; it only saves a copy of the assembly in addition to displaying it.
+
+The native executable prints the program's integer outputs one per line. This backend targets 64-bit Linux using the System V AMD64 ABI. The TAC generator and native backend are separate consumers of the optimized AST: TAC is displayed for inspection, while the target backend emits assembly directly from that AST. The AST interpreter remains an independent execution path.
+
+Run the native-backend regression tests separately:
+
+```bash
+make test-native
+```
+
+This target generates assembly, assembles and links representative programs with GCC, runs the resulting native executables, and compares their output with expected values.
 
 ## Running the regression suite
 
@@ -242,6 +272,11 @@ make clean && make && make test
 
 ## Known scope and future work
 
+- The target backend emits GNU x86-64 assembly for 64-bit Linux; it is not a portable backend for other architectures or operating systems.
+- MiniLang values are integers, and generated native execution uses 32-bit integer arithmetic to match the current language model.
+- The target backend generates assembly directly from the optimized AST rather than consuming the displayed TAC. A next step would be to lower TAC into target instructions so the IR becomes the explicit interface between optimization and code generation.
+- Native runtime diagnostics are more limited than the interpreter's diagnostics; division by zero exits the native process with a non-zero status.
+
 This is a compact educational implementation, so its supported language and optimization rules are intentionally limited. Potential next improvements include:
 
 - Golden-output comparisons and broader regression coverage for the existing pass/fail test runner.
@@ -266,6 +301,8 @@ MiniCompiler/
 │   ├── semantic_analyzer.cpp
 │   ├── ir.h
 │   ├── ir.cpp
+│   ├── target_codegen.h
+│   ├── target_codegen.cpp
 │   ├── optimizer.h
 │   ├── optimizer.cpp
 │   ├── interpreter.h

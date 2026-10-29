@@ -4,6 +4,7 @@
 #include <vector>
 }
 %{
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -13,6 +14,7 @@
 #include "ir.h"
 #include "interpreter.h"
 #include "optimizer.h"
+#include "target_codegen.h"
 
 int yylex();
 void yyerror(const char *s);
@@ -230,7 +232,28 @@ void yyerror(const char *s) {
     if (!lexicalError) std::cout << "Syntax Error: " << s << std::endl;
 }
 
-int main() {
+int main(int argc, char** argv) {
+    // Target code generation is part of the normal pipeline. By default the
+    // generated assembly is printed in the terminal alongside the TAC. The
+    // optional flag also saves a copy for assembling into a native executable.
+    std::string assemblyOutputPath;
+    for (int i = 1; i < argc; ++i) {
+        const std::string argument = argv[i];
+        if (argument == "--emit-asm" && i + 1 < argc) {
+            assemblyOutputPath = argv[++i];
+        } else if (argument == "--help") {
+            std::cout << "Usage: ./src/compiler [--emit-asm output.s] < program.min\n"
+                         "Target assembly is displayed in the terminal during every successful run.\n"
+                         "Use --emit-asm output.s to also save the assembly to a file.\n"
+                         "The generated GNU x86-64 assembly can be assembled with GCC.\n";
+            return 0;
+        } else {
+            std::cerr << "Unknown or incomplete option: " << argument << "\n"
+                      << "Usage: ./src/compiler [--emit-asm output.s] < program.min\n";
+            return 2;
+        }
+    }
+
     std::cout << "========================================\n          MINILANG COMPILER\n========================================\n\n";
     const int parseResult = yyparse();
 
@@ -270,8 +293,42 @@ int main() {
     std::cout << "[6] Intermediate Code     ✓\n";
     ir.printTAC();
 
+    // Generate native target code during every successful compiler run.
+    // The interpreter remains enabled so the existing demonstration output
+    // and regression behavior are preserved alongside the new backend.
+    TargetCodeGenerator targetGenerator;
+    std::string assembly;
+    std::string generationError;
+    if (!targetGenerator.generate(root.get(), assembly, generationError)) {
+        std::cerr << "Target code generation failed: " << generationError << "\n";
+        std::cout << "COMPILATION FAILED\n";
+        return 1;
+    }
+
+    std::cout << "[7] Target Code Generation ✓\n"
+              << "\n=== TARGET CODE (GNU x86-64 Assembly) ===\n\n"
+              << assembly
+              << "=== END TARGET CODE ===\n";
+
+    if (!assemblyOutputPath.empty()) {
+        std::ofstream assemblyFile(assemblyOutputPath);
+        if (!assemblyFile) {
+            std::cerr << "Could not write assembly file: " << assemblyOutputPath << "\n";
+            return 1;
+        }
+        assemblyFile << assembly;
+        assemblyFile.close();
+        if (!assemblyFile) {
+            std::cerr << "Failed while writing assembly file: " << assemblyOutputPath << "\n";
+            return 1;
+        }
+        std::cout << "Assembly also saved to: " << assemblyOutputPath << "\n"
+                  << "Build native executable with: gcc " << assemblyOutputPath
+                  << " -o minilang_program\n";
+    }
+
     Interpreter interpreter;
-    std::cout << "[7] Execution             ";
+    std::cout << "[8] AST Interpreter       ";
     if (!interpreter.execute(root.get())) {
         std::cout << "X\n========================================\n        EXECUTION FAILED\n========================================\n";
         return 1;
