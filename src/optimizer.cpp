@@ -1,3 +1,5 @@
+// AST optimizer: folds safe constant expressions, simplifies known branches,
+// and removes statements that cannot execute after an unconditional return.
 #include "optimizer.h"
 
 #include <climits>
@@ -7,10 +9,13 @@
 #include <string>
 
 namespace {
+// A small helper keeps constant checks explicit without changing node ownership.
 const NumberExpr* number(const Expression* expression) {
     return dynamic_cast<const NumberExpr*>(expression);
 }
 
+// Compute a constant operation only when the result is representable as int.
+// Returning false leaves operations such as division by zero for runtime handling.
 bool calculateBinary(const std::string& op, int left, int right, int& result) {
     const long long a = left;
     const long long b = right;
@@ -40,6 +45,8 @@ bool calculateBinary(const std::string& op, int left, int right, int& result) {
 }
 }
 
+// Optimize children before their parent so newly constant parent expressions
+// can be folded in the same pass.
 void Optimizer::optimizeExpression(std::unique_ptr<Expression>& expression) {
     if (!expression) return;
 
@@ -123,6 +130,8 @@ void Optimizer::optimizeExpression(std::unique_ptr<Expression>& expression) {
     }
 }
 
+// Used for dead-statement elimination. A conditional is considered guaranteed
+// to return only when both branches exist and both return.
 bool Optimizer::alwaysReturns(const Statement* statement) const {
     if (dynamic_cast<const ReturnStatement*>(statement)) return true;
     if (const auto* block = dynamic_cast<const BlockStatement*>(statement)) {
@@ -184,6 +193,8 @@ void Optimizer::optimizeStatement(std::unique_ptr<Statement>& statement) {
     }
 }
 
+// Process a statement list in order. Once a statement always returns, all
+// later statements in that same list are unreachable.
 void Optimizer::optimizeStatementList(std::vector<std::unique_ptr<Statement>>& statements) {
     for (std::size_t i = 0; i < statements.size(); ++i) {
         optimizeStatement(statements[i]);
@@ -195,6 +206,7 @@ void Optimizer::optimizeStatementList(std::vector<std::unique_ptr<Statement>>& s
     }
 }
 
+// Reset counters on every invocation so the summary is pass-local.
 void Optimizer::optimize(Program* program) {
     foldedExpressions = removedStatements = simplifiedBranches = 0;
     if (program) optimizeStatementList(program->statements);

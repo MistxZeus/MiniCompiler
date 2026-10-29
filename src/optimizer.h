@@ -5,6 +5,8 @@
 
 #include <cstddef>
 
+// Performs in-place AST optimizations. The counters describe transformations
+// performed during the most recent call to optimize().
 class Optimizer {
     std::size_t foldedExpressions = 0;
     std::size_t removedStatements = 0;
@@ -20,4 +22,4 @@ public:
     void printSummary() const;
 };
 
-#endif
+#endif // OPTIMIZER_H

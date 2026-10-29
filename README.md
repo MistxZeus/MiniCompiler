@@ -15,7 +15,7 @@ MiniCompiler is a small compiler and interpreter for **MiniLang**, a C-like teac
 - **Functions:** parameters, calls, return values, and recursive calls.
 - **Intermediate representation:** emits three-address code, including temporaries, labels, conditional/unconditional jumps, parameters, calls, and returns.
 - **Optimization:** constant folding, constant-branch simplification, and dead-statement removal for supported cases.
-- **Interpreter:** executes the generated intermediate code and reports runtime errors such as division by zero.
+- **Interpreter:** executes the optimized AST and reports runtime errors such as division by zero.
 
 ## Compiler pipeline
 
@@ -23,28 +23,20 @@ MiniCompiler is a small compiler and interpreter for **MiniLang**, a C-like teac
 MiniLang source
       |
       v
-Flex lexer
-      |
-      v
-Bison parser
-      |
-      v
-Abstract Syntax Tree
-      |
-      v
-Semantic analysis
-      |
-      v
-AST optimization
-      |
-      v
-Three-address code (TAC)
-      |
-      v
-Interpreter / runtime environment
+Flex lexer -> Bison parser -> Abstract Syntax Tree
+                                  |
+                                  v
+                           Semantic analysis
+                                  |
+                                  v
+                            AST optimization
+                             /           \
+                            v             v
+                  Three-address code   AST interpreter
+                       (TAC)           / runtime state
 ```
 
-The implementation performs semantic analysis before optimization so that invalid source programs are rejected before the optimizer runs. The optimizer transforms the AST, after which the IR generator and interpreter process the optimized program.
+The implementation performs semantic analysis before optimization so that invalid source programs are rejected before the optimizer runs. The optimizer transforms the AST. The IR generator emits TAC for inspection, while the interpreter separately executes the optimized AST directly; TAC is not currently fed into the interpreter.
 
 ## Requirements
 
@@ -107,25 +99,26 @@ The compiler also prints its pipeline stages, AST, symbol table, optimization su
 make test
 ```
 
-The suite includes valid programs and intentional error cases. Some test programs are expected to report semantic, syntax, lexical, or runtime errors; those messages are expected test behavior, not necessarily a failure of the test suite. Review the output against each test's purpose.
+The suite includes valid programs and intentional error cases. `make test` checks the process exit status for every fixture: valid programs must succeed, while known diagnostic cases must exit non-zero. The complete fixture-by-fixture catalog is in [`tests/README.md`](tests/README.md).
 
 Current test files include:
 
 - `valid_program.min`
 - `print_program.min`
+- `parentheses.min`
 - `tac_basic.min`
-- `undefined_variable.min`
-- `duplicate_declaration.min`
-- `invalid_assignment.min`
-- `syntax_error.min`
-- `lexical_error.min`
-- `division_by_zero.min`
 - `control_flow.min`
 - `functions.min`
 - `recursive_function.min`
 - `short_circuit.min`
 - `scopes.min`
 - `optimization.min`
+- `undefined_variable.min`
+- `duplicate_declaration.min`
+- `invalid_assignment.min`
+- `syntax_error.min`
+- `lexical_error.min`
+- `division_by_zero.min`
 
 ## MiniLang examples
 
@@ -251,7 +244,7 @@ make clean && make && make test
 
 This is a compact educational implementation, so its supported language and optimization rules are intentionally limited. Potential next improvements include:
 
-- More exhaustive automated tests and an explicit pass/fail test runner.
+- Golden-output comparisons and broader regression coverage for the existing pass/fail test runner.
 - Differential testing of optimized and unoptimized execution.
 - Stronger type and return-path analysis.
 - Additional IR-level optimizations and optimization correctness checks.
@@ -269,8 +262,6 @@ MiniCompiler/
 │   ├── parser.y
 │   ├── ast.h
 │   ├── ast.cpp
-│   ├── semantic.h
-│   ├── semantic.cpp
 │   ├── semantic_analyzer.h
 │   ├── semantic_analyzer.cpp
 │   ├── ir.h
@@ -280,7 +271,8 @@ MiniCompiler/
 │   ├── interpreter.h
 │   └── interpreter.cpp
 └── tests/
+    ├── README.md
     └── *.min
 ```
 
-Generated parser/lexer files and the compiled executable are build artifacts; the source of truth is in `src/lexer.l` and `src/parser.y` plus the C++ implementation files.
+Generated parser/lexer files and the compiled executable are build artifacts and are intentionally ignored by Git. The source of truth is `src/lexer.l`, `src/parser.y`, and the handwritten C++ files. Older phase snapshots, an empty stray file, and an unused flat `SymbolTable` implementation were removed; the scope-aware `SemanticAnalyzer` is the symbol table implementation used by the compiler. Use Git history or release tags for version history rather than checking compressed copies into the working tree.
